@@ -5,6 +5,7 @@ from streamlit_pills import pills
 
 from schemas import UserInput, TripPlan
 from utils import send_requests
+from map_utils import geocode_address
 
 
 user_input = {}
@@ -114,18 +115,22 @@ gen_itinerary_button = st.button("Generate itinerary",)
      
 if gen_itinerary_button:
 
-    planner_input = UserInput(**user_input)
-    trip_plan = send_requests(planner_input)
+    places_list = []
 
-    # from constants import example_trip_plan
-    # trip_plan = example_trip_plan
+    with st.spinner("Generating..."):
+
+        planner_input = UserInput(**user_input)
+        trip_plan = send_requests(planner_input)
+
+        # from constants import example_trip_plan
+        # trip_plan = example_trip_plan
 
     itinerary = trip_plan['itinerary']
     # print("trip_plan:", trip_plan)
     print(itinerary)
-    duration = len(itinerary)
+    # duration = len(itinerary)
 
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns([0.45, 0.55])
 
     with col1: 
         itinerary_container = st.container(height=600)
@@ -139,6 +144,9 @@ if gen_itinerary_button:
                 expander = st.expander(f"Day {day_plan['day']}: {day_of_week}, {day_plan['date']}")
                 # expander.write(day_plan['activities']['place'])
                 for activity in day_plan['activities']:
+                    lat, lon = geocode_address(activity['place'])
+                    if lat and lon:
+                        places_list.append((lat, lon))
                     expander.write(activity['activity'])
                 # expander.image("https://static.streamlit.io/examples/dice.jpg")
 
@@ -146,6 +154,7 @@ if gen_itinerary_button:
     with col2: 
         map_container = st.container(height=600)
         import folium
+        from folium.plugins import Search
         import pandas as pd
 
         from streamlit_folium import st_folium
@@ -153,6 +162,26 @@ if gen_itinerary_button:
 
             # # Streamlit app layout
             st.subheader("🌎 Map Viewer")
+
+            # # Latitude and longitude of Vietnam
+            # latitude = 12.270549
+            # longitude = 109.176954
+
+            # Calculate the average latitude and longitude
+            avg_lat = sum(lat for lat, lon in places_list) / len(places_list)
+            avg_lon = sum(lon for lat, lon in places_list) / len(places_list)
+
+            # Create a map centered at the average coordinates
+            map = folium.Map(location=[avg_lat, avg_lon], zoom_start=8)
+                        
+            for (lat, lon) in places_list:
+
+                folium.Marker(
+                location=[lat, lon]
+                ).add_to(map)
+
+            # st_map = st_folium(m)
+            st.components.v1.html(folium.Figure().add_child(map).render(),height=500)
 
             # # User input for latitude and longitude
             # latitude = st.number_input("Enter latitude", min_value=-90.0, max_value=90.0, value=0.0)
@@ -170,17 +199,17 @@ if gen_itinerary_button:
             # # Render the map in the Streamlit app
             # st_folium(my_map, width=700)
 
-            ## Create a sample DataFrame with latitude and longitude values
-            data = pd.DataFrame({
-                'latitude': [37.7749, 34.0522, 40.7128],
-                'longitude': [-122.4194, -118.2437, -74.0060]
-            })
+            # ## Create a sample DataFrame with latitude and longitude values
+            # data = pd.DataFrame({
+            #     'latitude': [37.7749, 34.0522, 40.7128],
+            #     'longitude': [-122.4194, -118.2437, -74.0060]
+            # })
 
-            # Create a DataFrame with the points you want to highlight
-            highlight = pd.DataFrame({
-                'latitude': [37.7749],
-                'longitude': [-122.4194]
-            })
+            # # Create a DataFrame with the points you want to highlight
+            # highlight = pd.DataFrame({
+            #     'latitude': [37.7749],
+            #     'longitude': [-122.4194]
+            # })
             
-            # Add the highlight points to the map
-            st.map()
+            # # Add the highlight points to the map
+            # st.map()
