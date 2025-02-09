@@ -1,5 +1,5 @@
 SERVER_URL = "http://127.0.0.1:8000"
-
+GEOAPIFY_URL = "https://api.geoapify.com/v1/geocode/search?text={encoded_address}&format=json&apiKey={api_key}"
 
 example_user_inputs = [
   {
